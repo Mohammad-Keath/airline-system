@@ -1,20 +1,30 @@
 require('dotenv').config();
 const port = process.env.PORT
 const io = require('socket.io')(port)
-const { faker } = require('@faker-js/faker');
 
+let queue = {
+    flights:{
+
+    }
+}
 
 
 io.on('connection',(socket)=>{
     console.log(`connected with ${socket.id}`);
     socket.on('new-flight',(payload)=>{
+        let id = payload.id
+        queue.flights[id] = payload
         let obj = {
             event: `new flight `,
             time: new Date(),
+            id : id,
             Details: payload
         }
         console.log(obj)
-        io.emit('schedialed',payload)
+        io.emit('schedialed',(payload))
+    })
+    socket.on('delete',(payload)=>{
+        delete queue.flights[payload.id] 
     })
     socket.on('Arrived',(payload)=>{
         let obj = {
@@ -25,8 +35,15 @@ io.on('connection',(socket)=>{
         console.log(obj)
         io.emit('ArrivedM',payload)
     })
+    socket.on('get_all',()=>{
+        Object.keys(queue.flights).map((id)=>{
+            socket.emit('flight',(id,queue.flights[id]))
+            // console.log(id);
+        })
+    })
     
 })
+
 
 
 const airline = io.of('/airline')
